@@ -1,5 +1,2 @@
 [build]
-  base = "sorti-landing"
-  command = "npm run build"
-
-# IMPORTANT: do NOT set publish or functions for Next.js
+command = "npm run build"
