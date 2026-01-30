@@ -1,0 +1,7 @@
+[build]
+  base = "sorti-landing"
+  command = "npm run build"
+  publish = ""
+
+[functions]
+  directory = ""
