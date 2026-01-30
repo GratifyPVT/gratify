@@ -1,7 +1,5 @@
 [build]
   base = "sorti-landing"
   command = "npm run build"
-  publish = ""
 
-[functions]
-  directory = ""
+# IMPORTANT: do NOT set publish or functions for Next.js
