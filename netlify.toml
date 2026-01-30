@@ -1,6 +1,7 @@
 [build]
   base = "sorti-landing"
   command = "npm run build"
+  publish = ".netlify/functions-internal"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
