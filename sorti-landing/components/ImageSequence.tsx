@@ -21,7 +21,7 @@ export default function ImageSequence() {
 
     // Preload textures
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const textures = useTexture(urls) as any as THREE.Texture[];
+    const textures = useTexture(urls) as any;
 
     // Fix aspect ratio if needed, or cover
     // The images are likely 1:1 or specific aspect. 
