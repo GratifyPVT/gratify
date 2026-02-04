@@ -56,7 +56,7 @@ export default function PostScroll() {
                             <li className="flex items-center"><Check className="w-5 h-5 text-emerald-400 mr-3" /> ~360 plays per day</li>
                             <li className="flex items-center"><Check className="w-5 h-5 text-emerald-400 mr-3" /> Ultra-HD Display</li>
                         </ul>
-                        <button className="w-full py-3 border border-emerald-500 text-emerald-400 hover:bg-emerald-500 hover:text-black font-semibold rounded-xl transition-all">
+                        <button onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })} className="w-full py-3 border border-emerald-500 text-emerald-400 hover:bg-emerald-500 hover:text-black font-semibold rounded-xl transition-all">
                             Select Plan
                         </button>
                     </div>
@@ -73,7 +73,7 @@ export default function PostScroll() {
                             <li className="flex items-center"><Check className="w-5 h-5 text-emerald-400 mr-3" /> Regional Targeting</li>
                             <li className="flex items-center"><Check className="w-5 h-5 text-emerald-400 mr-3" /> Analytics Report</li>
                         </ul>
-                        <button className="w-full py-3 border border-white/20 hover:border-white text-white hover:bg-white hover:text-black font-semibold rounded-xl transition-all">
+                        <button onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })} className="w-full py-3 border border-white/20 hover:border-white text-white hover:bg-white hover:text-black font-semibold rounded-xl transition-all">
                             Contact Sales
                         </button>
                     </div>
@@ -90,7 +90,7 @@ export default function PostScroll() {
                             <li className="flex items-center"><Check className="w-5 h-5 text-emerald-400 mr-3" /> Priority Sequencing</li>
                             <li className="flex items-center"><Check className="w-5 h-5 text-emerald-400 mr-3" /> Dedicated Support</li>
                         </ul>
-                        <button className="w-full py-3 border border-white/20 hover:border-white text-white hover:bg-white hover:text-black font-semibold rounded-xl transition-all">
+                        <button onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })} className="w-full py-3 border border-white/20 hover:border-white text-white hover:bg-white hover:text-black font-semibold rounded-xl transition-all">
                             Partner With Us
                         </button>
                     </div>
@@ -138,7 +138,7 @@ export default function PostScroll() {
             </div>
 
             {/* CONTACT FOOTER */}
-            <div className="border-t border-white/10 pt-20 pb-10">
+            <div id="contact" className="border-t border-white/10 pt-20 pb-10">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-6xl mx-auto">
                     <div>
                         <h2 className="text-5xl font-bold tracking-tighter mb-8 bg-gradient-to-b from-white to-gray-600 bg-clip-text text-transparent">
