@@ -41,8 +41,8 @@ export default function Overlay() {
                     transition={{ duration: 1, delay: 0.2 }}
                     viewport={{ once: false, amount: 0.5 }}
                 >
-                    <h1 className="text-9xl font-bold tracking-tighter mix-blend-difference">Sorti.</h1>
-                    <p className="mt-4 text-xl font-light text-gray-300 max-w-md">
+                    <h1 className="text-6xl md:text-9xl font-bold tracking-tighter mix-blend-difference">Sorti.</h1>
+                    <p className="mt-4 text-lg md:text-xl font-light text-gray-300 max-w-xs md:max-w-md">
                         The AI-enabled smart dustbin by <span className="text-emerald-400 font-semibold">Gratify Ventures</span>.
                         <br /><span className="text-sm text-gray-500 mt-2 block">Sustainability + Smart Advertising</span>
                     </p>
@@ -57,10 +57,10 @@ export default function Overlay() {
                     transition={{ duration: 0.8 }}
                     viewport={{ once: false, amount: 0.5 }}
                 >
-                    <h2 className="text-7xl font-bold tracking-tight mb-4">
+                    <h2 className="text-5xl md:text-7xl font-bold tracking-tight mb-4">
                         AUTOMATIC<br />SEGREGATION
                     </h2>
-                    <p className="text-lg text-gray-400 max-w-lg ml-auto">
+                    <p className="text-base md:text-lg text-gray-400 max-w-xs md:max-w-lg ml-auto">
                         Intelligently separates wet and dry waste, ensuring cleaner cities and efficient recycling.
                     </p>
                 </motion.div>
@@ -74,10 +74,10 @@ export default function Overlay() {
                     transition={{ duration: 0.8 }}
                     viewport={{ once: false, amount: 0.6 }}
                 >
-                    <h2 className="text-7xl font-bold tracking-tight mb-6">
+                    <h2 className="text-5xl md:text-7xl font-bold tracking-tight mb-6">
                         55" DIGITAL <span className="text-emerald-400">CANVAS</span>.
                     </h2>
-                    <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+                    <p className="text-lg md:text-xl text-gray-300 max-w-xs md:max-w-2xl mx-auto">
                         High-visibility advertising space playing 360+ times a day per brand.
                     </p>
                 </motion.div>
@@ -91,10 +91,10 @@ export default function Overlay() {
                     transition={{ duration: 0.8 }}
                     viewport={{ once: false, amount: 0.5 }}
                 >
-                    <h2 className="text-6xl font-bold tracking-tighter">
+                    <h2 className="text-4xl md:text-6xl font-bold tracking-tighter">
                         GRATIFY <br />VENTURES.
                     </h2>
-                    <p className="mt-4 text-lg text-gray-400">
+                    <p className="mt-4 text-base md:text-lg text-gray-400">
                         Innovating waste management & digital advertising for the future.
                     </p>
                 </motion.div>

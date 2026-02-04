@@ -25,7 +25,7 @@ export default function Scene() {
                 />
                 <pointLight position={[-10, -10, -10]} decay={0} intensity={Math.PI} />
 
-                <ScrollControls pages={5} damping={0.2} style={{ scrollbarWidth: "none" }}>
+                <ScrollControls pages={5} damping={0.5} style={{ scrollbarWidth: "none" }}>
                     <ImageSequence />
                     <Overlay />
                 </ScrollControls>
