@@ -1,9 +1,7 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
-import { ScrollControls } from "@react-three/drei";
 import ImageSequence from "./ImageSequence";
-import Overlay from "./Overlay";
 
 export default function Scene() {
     return (
@@ -25,10 +23,7 @@ export default function Scene() {
                 />
                 <pointLight position={[-10, -10, -10]} decay={0} intensity={Math.PI} />
 
-                <ScrollControls pages={5} damping={0.5} style={{ scrollbarWidth: "none" }}>
-                    <ImageSequence />
-                    <Overlay />
-                </ScrollControls>
+                <ImageSequence />
             </Canvas>
         </div>
     );
