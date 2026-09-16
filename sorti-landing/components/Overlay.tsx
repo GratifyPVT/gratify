@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useScroll, useTransform, type MotionValue } from "framer-motion";
+import { motion, useMotionValueEvent, useScroll, useTransform, type MotionValue } from "framer-motion";
 import type { ReactNode, RefObject } from "react";
 import PostScroll from "@/components/PostScroll";
 
@@ -85,11 +85,23 @@ export default function Overlay({
         offset: ["start start", "end start"],
     });
     const scrollCueOpacity = useTransform(scrollYProgress, [0, 0.08], [1, 0]);
+    const mobileVeil = useTransform(scrollYProgress, [0.66, 0.78], [0, 1]);
+
+    useMotionValueEvent(scrollYProgress, "change", (v) => {
+        const scene = document.getElementById("sorti-scene");
+        if (!scene) return;
+        if (window.matchMedia("(min-width: 768px)").matches) {
+            scene.style.opacity = "1";
+            return;
+        }
+        const t = Math.min(1, Math.max(0, (v - 0.66) / 0.12));
+        scene.style.opacity = String(1 - t);
+    });
 
     return (
         <div className="relative w-full">
             <div ref={sequenceRef} id="sorti-sequence" className="h-[400vh] w-full relative">
-                <div className="sticky top-0 h-dvh">
+                <div className="sticky top-0 h-[100svh]">
                     <div className="pointer-events-none absolute inset-0 hidden md:block">
                         <div className="absolute left-1/2 top-[62%] h-[40%] w-[48%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/[0.06] blur-[110px]" />
                     </div>
@@ -169,13 +181,18 @@ export default function Overlay({
 
                     <motion.div
                         style={{ opacity: scrollCueOpacity }}
-                        className="pointer-events-none absolute bottom-8 left-1/2 z-20 -translate-x-1/2 text-center"
+                        className="pointer-events-none absolute bottom-8 left-1/2 z-20 -translate-x-1/2 text-center md:bottom-10"
                     >
                         <span className="font-sans text-[10px] uppercase tracking-[0.32em] text-white/45">Scroll</span>
                         <div className="mx-auto mt-2 h-8 w-px bg-gradient-to-b from-emerald-400/80 to-transparent" />
                     </motion.div>
                 </div>
             </div>
+
+            <motion.div
+                style={{ opacity: mobileVeil }}
+                className="pointer-events-none fixed inset-0 z-[5] bg-black md:hidden"
+            />
 
             <div className="relative z-10 bg-[#000000]">
                 <PostScroll />

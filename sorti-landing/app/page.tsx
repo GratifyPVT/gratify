@@ -12,7 +12,7 @@ export default function Home() {
     <main className="w-full min-h-dvh bg-[#000000] text-white">
       <Nav />
 
-      <div className="pointer-events-none fixed inset-0 z-0 h-dvh w-full">
+      <div id="sorti-scene" className="pointer-events-none fixed inset-0 z-0 h-[100svh] w-full">
         <Scene scrollTarget={sequenceRef} />
       </div>
 

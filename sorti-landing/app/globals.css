@@ -19,6 +19,7 @@
 
 html {
   overflow-x: clip;
+  overscroll-behavior: none;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -29,6 +30,7 @@ body {
   line-height: 1.65;
   max-width: 100%;
   touch-action: pan-y;
+  overscroll-behavior: none;
 }
 
 h1,
