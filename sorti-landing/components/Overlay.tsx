@@ -73,7 +73,7 @@ function BeatLabel({ children }: { children: ReactNode }) {
 }
 
 const pad =
-    "px-5 sm:px-8 md:px-12 pt-[max(5.5rem,calc(env(safe-area-inset-top)+4.25rem))] md:pt-32 lg:pt-36 pb-[max(1.5rem,env(safe-area-inset-bottom))]";
+    "px-5 sm:px-8 md:px-12 pt-[max(9rem,calc(env(safe-area-inset-top)+7.5rem))] md:pt-32 lg:pt-36 pb-[max(1.5rem,env(safe-area-inset-bottom))]";
 
 export default function Overlay({
     sequenceRef,
