@@ -136,9 +136,9 @@ export default function ImageSequence({
         };
     }, [urls]);
 
-    const textureAspect = firstTexture.image
-        ? firstTexture.image.width / firstTexture.image.height
-        : 16 / 9;
+    const imageSize = firstTexture.image as { width?: number; height?: number } | undefined;
+    const textureAspect =
+        imageSize?.width && imageSize?.height ? imageSize.width / imageSize.height : 16 / 9;
     const viewportAspect = viewport.width / viewport.height;
     const isPortrait = viewportAspect < 1;
 
