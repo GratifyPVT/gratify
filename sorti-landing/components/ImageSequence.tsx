@@ -1,29 +1,12 @@
 "use client";
 
-import { useTexture } from "@react-three/drei";
-import { useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, type RefObject } from "react";
-import * as THREE from "three";
-import { useMotionValue } from "framer-motion";
+import { useEffect, useRef, type RefObject } from "react";
 
 const FRAME_COUNT = 192;
 const MOBILE_BREAKPOINT = 768;
-const LOAD_CONCURRENCY = 10;
+const LOAD_CONCURRENCY = 12;
 
-function prepareTexture(tex: THREE.Texture) {
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.generateMipmaps = false;
-    tex.minFilter = THREE.LinearFilter;
-    tex.magFilter = THREE.LinearFilter;
-    tex.needsUpdate = true;
-    return tex;
-}
-
-function nearestFrame(
-    frames: (THREE.Texture | null)[],
-    index: number,
-    fallback: THREE.Texture
-) {
+function nearestFrame(frames: (ImageBitmap | HTMLImageElement | null)[], index: number) {
     if (frames[index]) return frames[index];
     for (let d = 1; d < FRAME_COUNT; d++) {
         const lo = index - d;
@@ -31,7 +14,19 @@ function nearestFrame(
         if (lo >= 0 && frames[lo]) return frames[lo];
         if (hi < FRAME_COUNT && frames[hi]) return frames[hi];
     }
-    return fallback;
+    return null;
+}
+
+async function loadBitmap(url: string) {
+    const res = await fetch(url, { cache: "force-cache" });
+    const blob = await res.blob();
+    if (typeof createImageBitmap === "function") {
+        return createImageBitmap(blob);
+    }
+    const img = new Image();
+    img.src = URL.createObjectURL(blob);
+    await img.decode();
+    return img;
 }
 
 export default function ImageSequence({
@@ -39,8 +34,11 @@ export default function ImageSequence({
 }: {
     scrollTarget: RefObject<HTMLElement | null>;
 }) {
-    const sequenceProgress = useMotionValue(0);
-    const displayedProgress = useRef(0);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const framesRef = useRef<(ImageBitmap | HTMLImageElement | null)[]>(new Array(FRAME_COUNT).fill(null));
+    const progressRef = useRef(0);
+    const displayedRef = useRef(0);
+    const lastDrawnRef = useRef(-1);
 
     useEffect(() => {
         const update = () => {
@@ -50,7 +48,6 @@ export default function ImageSequence({
 
             const sequenceTop = el.getBoundingClientRect().top + window.scrollY;
             const mobile = window.innerWidth < MOBILE_BREAKPOINT;
-
             let endY: number;
             if (key) {
                 const keyTop = key.getBoundingClientRect().top + window.scrollY;
@@ -60,55 +57,37 @@ export default function ImageSequence({
             }
 
             const p = (window.scrollY - sequenceTop) / Math.max(1, endY - sequenceTop);
-            sequenceProgress.set(Math.max(0, Math.min(1, p)));
+            progressRef.current = Math.max(0, Math.min(1, p));
         };
 
         update();
         window.addEventListener("scroll", update, { passive: true });
-        window.addEventListener("resize", update);
+        window.addEventListener("resize", update, { passive: true });
         return () => {
             window.removeEventListener("scroll", update);
             window.removeEventListener("resize", update);
         };
-    }, [scrollTarget, sequenceProgress]);
+    }, [scrollTarget]);
 
-    const { viewport } = useThree();
-    const meshRef = useRef<THREE.Mesh>(null);
-
-    const urls = useMemo(() => {
-        return Array.from({ length: FRAME_COUNT }, (_, i) =>
+    useEffect(() => {
+        const urls = Array.from({ length: FRAME_COUNT }, (_, i) =>
             `/frames/sequence_${String(i).padStart(3, "0")}.jpg`
         );
-    }, []);
-
-    const firstTexture = useTexture(urls[0]);
-    const textureRefs = useRef<(THREE.Texture | null)[]>([]);
-
-    if (textureRefs.current.length === 0) {
-        textureRefs.current = new Array(FRAME_COUNT).fill(null);
-        textureRefs.current[0] = firstTexture;
-    }
-
-    useEffect(() => {
-        prepareTexture(firstTexture);
-    }, [firstTexture]);
-
-    useEffect(() => {
-        const loader = new THREE.TextureLoader();
         let cancel = false;
-        let nextIndex = 1;
+        let nextIndex = 0;
 
         const loadNext = async () => {
             while (!cancel) {
                 const index = nextIndex++;
                 if (index >= FRAME_COUNT) return;
                 try {
-                    const tex = await loader.loadAsync(urls[index]);
+                    const bitmap = await loadBitmap(urls[index]);
                     if (cancel) {
-                        tex.dispose();
+                        if ("close" in bitmap) bitmap.close();
                         return;
                     }
-                    textureRefs.current[index] = prepareTexture(tex);
+                    framesRef.current[index] = bitmap;
+                    if (index === 0) lastDrawnRef.current = -1;
                 } catch (e) {
                     console.error(e);
                 }
@@ -119,60 +98,102 @@ export default function ImageSequence({
 
         return () => {
             cancel = true;
+            framesRef.current.forEach((frame) => {
+                if (frame && "close" in frame) frame.close();
+            });
+            framesRef.current = new Array(FRAME_COUNT).fill(null);
         };
-    }, [urls]);
+    }, []);
 
-    const imageSize = firstTexture.image as { width?: number; height?: number } | undefined;
-    const textureAspect =
-        imageSize?.width && imageSize?.height ? imageSize.width / imageSize.height : 16 / 9;
-    const viewportAspect = viewport.width / viewport.height;
-    const isPortrait = viewportAspect < 1;
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
+        if (!ctx) return;
 
-    let width = viewport.width;
-    let height = viewport.height;
-    let x = 0;
+        const resize = () => {
+            const dpr = Math.min(2, window.devicePixelRatio || 1);
+            const w = canvas.clientWidth;
+            const h = canvas.clientHeight;
+            canvas.width = Math.max(1, Math.round(w * dpr));
+            canvas.height = Math.max(1, Math.round(h * dpr));
+            lastDrawnRef.current = -1;
+        };
 
-    if (isPortrait) {
-        const zoom = 1.5;
-        width = viewport.width * zoom;
-        height = width / textureAspect;
-        x = -width * 0.05;
-    } else if (viewportAspect > textureAspect) {
-        height = viewport.height;
-        width = height * textureAspect;
-    } else {
-        width = viewport.width;
-        height = width / textureAspect;
-    }
+        resize();
+        const ro = new ResizeObserver(resize);
+        ro.observe(canvas);
 
-    // Pin the video's bottom edge to the bottom of the screen.
-    const y = -(viewport.height / 2 - height / 2);
-    const scale: [number, number, number] = [width, height, 1];
-    const position: [number, number, number] = [x, y, 0];
+        const draw = (image: ImageBitmap | HTMLImageElement) => {
+            const w = canvas.width;
+            const h = canvas.height;
+            const iw = "width" in image ? image.width : 1280;
+            const ih = "height" in image ? image.height : 720;
+            const aspect = iw / Math.max(1, ih);
+            const viewAspect = w / h;
+            const isPortrait = viewAspect < 1;
 
-    useFrame((_, delta) => {
-        const target = sequenceProgress.get();
-        const smoothing = 1 - Math.exp(-18 * delta);
-        displayedProgress.current += (target - displayedProgress.current) * smoothing;
+            let dw: number;
+            let dh: number;
+            let dx = 0;
 
-        const frameIndex = Math.round(displayedProgress.current * (FRAME_COUNT - 1));
-        const clampedIndex = Math.max(0, Math.min(FRAME_COUNT - 1, frameIndex));
-
-        if (meshRef.current) {
-            const material = meshRef.current.material as THREE.MeshBasicMaterial;
-            const tex = nearestFrame(textureRefs.current, clampedIndex, firstTexture);
-
-            if (material.map !== tex) {
-                material.map = tex;
-                material.needsUpdate = true;
+            if (isPortrait) {
+                dw = w * 1.5;
+                dh = dw / aspect;
+                dx = (w - dw) / 2 - dw * 0.05;
+            } else if (viewAspect > aspect) {
+                dh = h;
+                dw = dh * aspect;
+                dx = (w - dw) / 2;
+            } else {
+                dw = w;
+                dh = dw / aspect;
             }
-        }
-    });
+
+            const dy = h - dh;
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(0, 0, w, h);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+            ctx.drawImage(image, dx, dy, dw, dh);
+        };
+
+        let raf = 0;
+        const loop = () => {
+            const target = progressRef.current;
+            displayedRef.current += (target - displayedRef.current) * 0.28;
+            if (Math.abs(target - displayedRef.current) < 0.0004) {
+                displayedRef.current = target;
+            }
+
+            const frameIndex = Math.max(
+                0,
+                Math.min(FRAME_COUNT - 1, Math.round(displayedRef.current * (FRAME_COUNT - 1)))
+            );
+
+            if (frameIndex !== lastDrawnRef.current) {
+                const frame = nearestFrame(framesRef.current, frameIndex);
+                if (frame) {
+                    draw(frame);
+                    lastDrawnRef.current = frameIndex;
+                }
+            }
+
+            raf = requestAnimationFrame(loop);
+        };
+
+        raf = requestAnimationFrame(loop);
+        return () => {
+            cancelAnimationFrame(raf);
+            ro.disconnect();
+        };
+    }, []);
 
     return (
-        <mesh ref={meshRef} scale={scale} position={position}>
-            <planeGeometry args={[1, 1]} />
-            <meshBasicMaterial map={firstTexture} toneMapped={false} />
-        </mesh>
+        <canvas
+            ref={canvasRef}
+            className="h-full w-full bg-black"
+            style={{ transform: "translateZ(0)", willChange: "contents" }}
+        />
     );
 }
