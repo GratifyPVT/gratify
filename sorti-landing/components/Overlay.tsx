@@ -1,112 +1,125 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, type MotionValue } from "framer-motion";
+import type { ReactNode, RefObject } from "react";
 import PostScroll from "@/components/PostScroll";
-import { useRef } from "react";
-import { clsx } from "clsx";
 
-// A Section is a sticky window into the content
-const Section = ({
-    children,
+function BeatCopy({
+    progress,
+    start,
+    end,
     className,
+    children,
 }: {
-    children: React.ReactNode;
-    className?: string;
-}) => {
-    return (
-        <div className={clsx("h-screen w-full flex flex-col justify-center p-10 snap-start", className)}>
-            {children}
-        </div>
+    progress: MotionValue<number>;
+    start: number;
+    end: number;
+    className: string;
+    children: ReactNode;
+}) {
+    const fadeIn = Math.max(0, start);
+    const visible = start + 0.04;
+    const fadeOut = end - 0.04;
+    const opacity = useTransform(
+        progress,
+        [fadeIn, visible, fadeOut, end],
+        start === 0 ? [1, 1, 1, 0] : [0, 1, 1, 0]
     );
-};
 
-export default function Overlay() {
-    // Total height of the 3D scroll experience
-    // 500vh means we scroll 5 screens worth of length.
-    // We map 0-1 scroll progress to the animation.
+    return (
+        <motion.div style={{ opacity }} className={`absolute inset-0 flex ${className}`}>
+            {children}
+        </motion.div>
+    );
+}
 
-    // Using framer motion to trigger animations as we scroll into view
+const pad =
+    "px-5 sm:px-8 md:p-10 pt-[max(4.25rem,calc(env(safe-area-inset-top)+2.75rem))] pb-[max(1.5rem,env(safe-area-inset-bottom))]";
+
+export default function Overlay({
+    sequenceRef,
+}: {
+    sequenceRef: RefObject<HTMLDivElement | null>;
+}) {
+    const { scrollYProgress } = useScroll({
+        target: sequenceRef,
+        offset: ["start start", "end start"],
+    });
 
     return (
         <div className="relative w-full">
-            {/* 3D SCROLL AREA - Ghost spacer to create scroll length */}
-            {/* We place content at absolute positions or use sticky behavior */}
+            <div ref={sequenceRef} id="sorti-sequence" className="h-[400vh] w-full relative">
+                <div className="sticky top-0 h-dvh">
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-[#000000] via-[#000000]/75 to-transparent md:hidden" />
 
-            <div className="h-[400vh] w-full relative">
-                {/* We can use sticky positioning for the texts.
-                    Or just absolute positioning based on % top.
-                */}
-
-                {/* BEAT A: Starts at 0 */}
-                <div className="absolute top-0 left-0 w-full h-screen flex items-start justify-center p-10 flex-col">
-                    <motion.div
-                        initial={{ opacity: 0, y: 50 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8 }}
-                        viewport={{ amount: 0.5 }}
+                    <BeatCopy
+                        progress={scrollYProgress}
+                        start={0}
+                        end={0.25}
+                        className={`flex-col items-start justify-start ${pad}`}
                     >
-                        <h1 className="text-6xl md:text-9xl font-bold tracking-tighter mix-blend-difference">Sorti.</h1>
-                        <p className="mt-4 text-lg md:text-xl font-light text-gray-300 max-w-xs md:max-w-md">
-                            The AI-enabled smart dustbin by <span className="text-emerald-400 font-semibold">Gratify Ventures</span>.
-                            <br /><span className="text-sm text-gray-500 mt-2 block">Sustainability + Smart Advertising</span>
-                        </p>
-                    </motion.div>
-                </div>
+                        <div className="relative z-10 max-w-[min(100%,22rem)] md:max-w-none">
+                            <h1 className="text-[2.75rem] leading-[0.9] sm:text-6xl md:text-9xl font-bold tracking-tighter mix-blend-difference">
+                                Sorti.
+                            </h1>
+                            <p className="mt-4 text-base sm:text-lg md:text-xl font-light text-gray-300 max-w-xs md:max-w-md">
+                                The AI-enabled smart dustbin by <span className="text-emerald-400 font-semibold">Gratify Ventures</span>.
+                                <br /><span className="text-sm text-gray-500 mt-2 block">Sustainability + Smart Advertising</span>
+                            </p>
+                        </div>
+                    </BeatCopy>
 
-                {/* BEAT B: ~25% down (100vh) */}
-                <div className="absolute top-[100vh] left-0 w-full h-screen flex items-end justify-end p-10 flex-col text-right">
-                    <motion.div
-                        initial={{ opacity: 0, x: 50 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.8 }}
-                        viewport={{ amount: 0.5 }}
+                    <BeatCopy
+                        progress={scrollYProgress}
+                        start={0.22}
+                        end={0.5}
+                        className={`flex-col items-start justify-start md:items-end md:justify-end text-left md:text-right ${pad}`}
                     >
-                        <h2 className="text-5xl md:text-7xl font-bold tracking-tight mb-4">
-                            AUTOMATIC<br />SEGREGATION
-                        </h2>
-                        <p className="text-base md:text-lg text-gray-400 max-w-xs md:max-w-lg ml-auto">
-                            Intelligently separates wet and dry waste, ensuring cleaner cities and efficient recycling.
-                        </p>
-                    </motion.div>
-                </div>
+                        <div className="relative z-10 max-w-[min(100%,22rem)] md:max-w-none">
+                            <h2 className="text-[1.85rem] leading-[1.05] sm:text-5xl md:text-7xl font-bold tracking-tight mb-3 md:mb-4">
+                                AUTOMATIC<br />SEGREGATION
+                            </h2>
+                            <p className="text-sm sm:text-base md:text-lg text-gray-400 max-w-xs md:max-w-lg md:ml-auto">
+                                Intelligently separates wet and dry waste, ensuring cleaner cities and efficient recycling.
+                            </p>
+                        </div>
+                    </BeatCopy>
 
-                {/* BEAT C: ~50% down (200vh) */}
-                <div className="absolute top-[200vh] left-0 w-full h-screen flex items-center justify-center p-10 flex-col text-center">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.8 }}
-                        viewport={{ amount: 0.5 }}
+                    <BeatCopy
+                        progress={scrollYProgress}
+                        start={0.47}
+                        end={0.75}
+                        className={`flex-col items-center justify-start md:justify-center text-center ${pad}`}
                     >
-                        <h2 className="text-5xl md:text-7xl font-bold tracking-tight mb-6">
-                            55" DIGITAL <span className="text-emerald-400">CANVAS</span>.
-                        </h2>
-                        <p className="text-lg md:text-xl text-gray-300 max-w-xs md:max-w-2xl mx-auto">
-                            High-visibility advertising space playing 360+ times a day per brand.
-                        </p>
-                    </motion.div>
-                </div>
+                        <div className="relative z-10 w-full max-w-xl md:max-w-none px-1">
+                            <h2 className="text-[1.85rem] leading-[1.1] sm:text-5xl md:text-7xl font-bold tracking-tight mb-4 md:mb-6 break-words">
+                                55&quot; DIGITAL <span className="text-emerald-400">CANVAS</span>.
+                            </h2>
+                            <p className="text-sm sm:text-lg md:text-xl text-gray-300 max-w-xs md:max-w-2xl mx-auto">
+                                High-visibility advertising space playing 360+ times a day per brand.
+                            </p>
+                        </div>
+                    </BeatCopy>
 
-                {/* BEAT D: ~75% down (300vh) */}
-                <div className="absolute top-[300vh] left-0 w-full h-screen flex items-center justify-start p-10 flex-col">
-                    <motion.div
-                        initial={{ opacity: 0, y: 50 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8 }}
-                        viewport={{ amount: 0.5 }}
+                    <BeatCopy
+                        progress={scrollYProgress}
+                        start={0.72}
+                        end={1}
+                        className={`flex-col items-start justify-start md:justify-center ${pad}`}
                     >
-                        <h2 className="text-4xl md:text-6xl font-bold tracking-tighter">
-                            GRATIFY <br />VENTURES.
-                        </h2>
-                        <p className="mt-4 text-base md:text-lg text-gray-400">
-                            Innovating waste management & digital advertising for the future.
-                        </p>
-                    </motion.div>
+                        <div className="relative z-10 max-w-[min(100%,22rem)] md:max-w-none">
+                            <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tighter">
+                                GRATIFY <br />VENTURES.
+                            </h2>
+                            <p className="mt-3 md:mt-4 text-sm sm:text-base md:text-lg text-gray-400 max-w-xs md:max-w-md">
+                                Innovating waste management & digital advertising for the future.
+                            </p>
+                        </div>
+                    </BeatCopy>
                 </div>
             </div>
 
-            {/* Post Scroll Content - Flows naturally after the spacer */}
-            <div className="relative z-10 bg-[#050505]">
+            <div className="relative z-10 bg-[#000000]">
                 <PostScroll />
             </div>
         </div>

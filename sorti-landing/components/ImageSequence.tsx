@@ -2,121 +2,171 @@
 
 import { useTexture } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, type RefObject } from "react";
 import * as THREE from "three";
-import { useScroll, useSpring, useTransform } from "framer-motion";
+import { useMotionValue, useSpring } from "framer-motion";
 
 const FRAME_COUNT = 192;
+const MOBILE_BREAKPOINT = 768;
+const MOBILE_MAX_TEXTURE = 1024;
 
-export default function ImageSequence() {
-    // Native Framer Motion scroll hook (works in client components)
-    const { scrollYProgress } = useScroll();
+function downscaleTexture(tex: THREE.Texture, maxSize: number) {
+    const image = tex.image as HTMLImageElement | HTMLCanvasElement | ImageBitmap | undefined;
+    if (!image || !("width" in image) || image.width <= maxSize) return tex;
 
-    // Create a smooth spring physics value
-    // Damping: Higher = less oscillation. Stiffness: Higher = faster response.
-    const smoothProgress = useSpring(scrollYProgress, {
+    const scale = maxSize / image.width;
+    const canvas = document.createElement("canvas");
+    canvas.width = maxSize;
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return tex;
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    tex.image = canvas;
+    tex.needsUpdate = true;
+    return tex;
+}
+
+function prepareTexture(tex: THREE.Texture, maxSize?: number) {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.generateMipmaps = false;
+    tex.minFilter = THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    if (maxSize) downscaleTexture(tex, maxSize);
+    return tex;
+}
+
+export default function ImageSequence({
+    scrollTarget,
+}: {
+    scrollTarget: RefObject<HTMLElement | null>;
+}) {
+    const sequenceProgress = useMotionValue(0);
+    const smoothProgress = useSpring(sequenceProgress, {
         damping: 20,
         stiffness: 100,
-        restDelta: 0.001
+        restDelta: 0.001,
     });
+
+    useEffect(() => {
+        const update = () => {
+            const el = scrollTarget.current ?? document.getElementById("sorti-sequence");
+            const key = document.getElementById("key-features");
+            if (!el) return;
+
+            const sequenceTop = el.getBoundingClientRect().top + window.scrollY;
+            const mobile = window.innerWidth < MOBILE_BREAKPOINT;
+
+            // Finish the clip as Key Features enters the viewport.
+            // On mobile, complete slightly before so the last frame is already held.
+            let endY: number;
+            if (key) {
+                const keyTop = key.getBoundingClientRect().top + window.scrollY;
+                endY = keyTop - window.innerHeight * (mobile ? 1.06 : 1);
+            } else {
+                endY = sequenceTop + el.offsetHeight - window.innerHeight;
+            }
+
+            const p = (window.scrollY - sequenceTop) / Math.max(1, endY - sequenceTop);
+            sequenceProgress.set(Math.max(0, Math.min(1, p)));
+        };
+
+        update();
+        window.addEventListener("scroll", update, { passive: true });
+        window.addEventListener("resize", update);
+        return () => {
+            window.removeEventListener("scroll", update);
+            window.removeEventListener("resize", update);
+        };
+    }, [scrollTarget, sequenceProgress]);
 
     const { viewport } = useThree();
     const meshRef = useRef<THREE.Mesh>(null);
 
-    // Generate URLs
     const urls = useMemo(() => {
         return Array.from({ length: FRAME_COUNT }, (_, i) =>
-            `/frames/sequence_${String(i).padStart(3, '0')}.jpg`
+            `/frames/sequence_${String(i).padStart(3, "0")}.jpg`
         );
     }, []);
 
-    // Load ONLY the first texture initially to unblock Suspense
     const firstTexture = useTexture(urls[0]);
-
-    // Store all textures in a ref to avoid re-renders
     const textureRefs = useRef<(THREE.Texture | null)[]>([]);
 
-    // Initialize refs with the first texture
     if (textureRefs.current.length === 0) {
         textureRefs.current = new Array(FRAME_COUNT).fill(null);
         textureRefs.current[0] = firstTexture;
     }
 
-    // Trigger for re-render if needed? Actually we don't need to re-render component
-    // We just need the textures to be available in the useFrame loop.
-    // However, fast scroll might hit a null texture if background loading isn't fast enough.
-    // In that case, we should probably show the closest loaded frame or the first frame.
+    useEffect(() => {
+        prepareTexture(firstTexture, window.innerWidth < MOBILE_BREAKPOINT ? MOBILE_MAX_TEXTURE : undefined);
+    }, [firstTexture]);
 
     useEffect(() => {
         const loader = new THREE.TextureLoader();
         let cancel = false;
+        const isMobile = window.innerWidth < MOBILE_BREAKPOINT;
+        const step = isMobile ? 2 : 1;
+        const maxSize = isMobile ? MOBILE_MAX_TEXTURE : undefined;
 
         const loadTextures = async () => {
-            // Load the rest in chunks to not freeze the thread
-            for (let i = 1; i < FRAME_COUNT; i += 5) {
+            for (let i = 1; i < FRAME_COUNT; i += step * 4) {
                 if (cancel) return;
 
-                // Load a chunk of 5
                 const chunkPromises = [];
-                for (let j = 0; j < 5 && i + j < FRAME_COUNT; j++) {
+                for (let j = 0; j < 4 && i + j * step < FRAME_COUNT; j++) {
+                    const index = i + j * step;
                     chunkPromises.push(
-                        loader.loadAsync(urls[i + j]).then(tex => {
-                            tex.colorSpace = THREE.SRGBColorSpace; // Ensure correct color space
-                            textureRefs.current[i + j] = tex;
-                        }).catch(e => console.error(e))
+                        loader
+                            .loadAsync(urls[index])
+                            .then((tex) => {
+                                textureRefs.current[index] = prepareTexture(tex, maxSize);
+                            })
+                            .catch((e) => console.error(e))
                     );
                 }
 
                 await Promise.all(chunkPromises);
-                // primitive yield to let main thread breathe
-                await new Promise(r => setTimeout(r, 10));
+                await new Promise((r) => setTimeout(r, isMobile ? 24 : 10));
             }
         };
 
         loadTextures();
 
-        return () => { cancel = true; };
+        return () => {
+            cancel = true;
+        };
     }, [urls]);
 
-
-    // Aspect Ratio Logic
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const textureAspect = (firstTexture as any).image ? (firstTexture as any).image.width / (firstTexture as any).image.height : 1;
+    const textureAspect = firstTexture.image
+        ? firstTexture.image.width / firstTexture.image.height
+        : 16 / 9;
     const viewportAspect = viewport.width / viewport.height;
-    let scale: [number, number, number] = [viewport.width, viewport.height, 1];
+    const isPortrait = viewportAspect < 1;
 
-    if (viewportAspect > textureAspect) {
+    let scale: [number, number, number] = [viewport.width, viewport.height, 1];
+    let position: [number, number, number] = [0, 0, 0];
+
+    if (isPortrait) {
+        const zoom = 1.5;
+        const width = viewport.width * zoom;
+        const height = width / textureAspect;
+        const maxDown = Math.max(0, viewport.height / 2 - height / 2 - viewport.height * 0.03);
+        const down = Math.min(viewport.height * 0.12, maxDown);
+        scale = [width, height, 1];
+        position = [-width * 0.05, -down, 0];
+    } else if (viewportAspect > textureAspect) {
         scale = [viewport.height * textureAspect, viewport.height, 1];
     } else {
         scale = [viewport.width, viewport.width / textureAspect, 1];
     }
 
     useFrame(() => {
-        // Get the current spring-smoothed scroll value (0 to 1)
-        // Note: The page isn't infinitely long, but we want the 3D sequence 
-        // to complete before the post-scroll content triggers fully?
-        // Actually, our Overlay is 400vh long for the sequence.
-        // And scrollYProgress 0->1 covers the WHOLE page including PostScroll.
-        // We probably want the animation to finish by the time we hit the end of the spacer.
-        // The spacer is 400vh. The total page might be 500vh+ with PostScroll.
-        // Let's assume we map 0-0.8 of total page scroll to 0-1 of animation.
-        // Or simpler: Just map 0-1 scroll to 0-1 frames.
-
         const rawProgress = smoothProgress.get();
-
-        // Use a transform to complete animation faster if needed, 
-        // but for now 1:1 mapping is fine if we tune the Overlay height.
-        // Let's map 0 -> 0.8 progress to frame 0 -> 191
-        // So the bin finishes opening *before* we scroll past it?
-        // Actually, mapping 0-1 is safest for sync.
-
         const frameIndex = Math.floor(rawProgress * (FRAME_COUNT - 1));
         const clampedIndex = Math.max(0, Math.min(FRAME_COUNT - 1, frameIndex));
 
         if (meshRef.current) {
             const material = meshRef.current.material as THREE.MeshBasicMaterial;
 
-            // Texture lookup strategy (same as before)
             let tex = textureRefs.current[clampedIndex];
 
             if (!tex) {
@@ -137,7 +187,7 @@ export default function ImageSequence() {
     });
 
     return (
-        <mesh ref={meshRef} scale={scale}>
+        <mesh ref={meshRef} scale={scale} position={position}>
             <planeGeometry args={[1, 1]} />
             <meshBasicMaterial map={firstTexture} transparent={true} />
         </mesh>
