@@ -1,172 +1,269 @@
 "use client";
 
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { motion } from "framer-motion";
 import { Check, Mail, Phone, Instagram, Linkedin, Leaf, Monitor, Split } from "lucide-react";
+
+function CountUp({
+    value,
+    suffix = "",
+    prefix = "",
+    label,
+}: {
+    value: number;
+    suffix?: string;
+    prefix?: string;
+    label: string;
+}) {
+    const ref = useRef<HTMLDivElement>(null);
+    const [n, setN] = useState(0);
+
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        const io = new IntersectionObserver(
+            ([entry]) => {
+                if (!entry.isIntersecting) return;
+                const start = performance.now();
+                const duration = 1000;
+                const tick = (now: number) => {
+                    const p = Math.min(1, (now - start) / duration);
+                    const eased = 1 - Math.pow(1 - p, 3);
+                    setN(Math.round(value * eased));
+                    if (p < 1) requestAnimationFrame(tick);
+                };
+                requestAnimationFrame(tick);
+                io.disconnect();
+            },
+            { threshold: 0.4 }
+        );
+        io.observe(el);
+        return () => io.disconnect();
+    }, [value]);
+
+    return (
+        <div ref={ref} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:p-6">
+            <div className="font-display text-2xl font-semibold tracking-tight text-emerald-400 md:text-4xl">
+                {prefix}
+                {n}
+                {suffix}
+            </div>
+            <div className="mt-2 text-xs tracking-wide text-gray-400 md:text-sm">{label}</div>
+        </div>
+    );
+}
+
+function FeatureCard({
+    index,
+    icon,
+    title,
+    body,
+    delay,
+}: {
+    index: string;
+    icon: ReactNode;
+    title: string;
+    body: string;
+    delay: number;
+}) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 22 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.35 }}
+            transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
+            className="group rounded-2xl border border-white/10 bg-white/[0.04] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-emerald-400/40 hover:shadow-[0_0_40px_rgba(52,211,153,0.12)] md:p-8"
+        >
+            <div className="mb-6 flex items-center justify-between">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-400/20">
+                    {icon}
+                </div>
+                <span className="font-display text-sm tracking-[0.2em] text-white/25">{index}</span>
+            </div>
+            <h3 className="mb-3 font-display text-xl font-semibold tracking-tight md:text-2xl">{title}</h3>
+            <p className="text-[15px] leading-relaxed text-gray-400 md:text-base">{body}</p>
+        </motion.div>
+    );
+}
 
 export default function PostScroll() {
     return (
-        <div className="relative z-10 bg-[#000000] text-white py-16 px-5 sm:px-8 md:py-24 md:px-20 font-sans pb-[max(4rem,calc(env(safe-area-inset-bottom)+3rem))]">
+        <div className="relative z-10 bg-[#000000] px-5 pt-20 pb-[max(4rem,calc(env(safe-area-inset-bottom)+3rem))] font-sans text-white sm:px-8 md:px-20 md:pt-28">
 
-            {/* PRODUCT FEATURES */}
-            <div id="key-features" className="mb-20 md:mb-32">
-                <h2 className="text-xs font-semibold tracking-widest text-emerald-500 uppercase mb-8 md:mb-12 text-center">Key Features</h2>
-                <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-12">
-                    <div className="p-6 md:p-8 border border-white/10 rounded-2xl bg-white/5 backdrop-blur-sm hover:bg-white/10 transition-colors">
-                        <Split className="w-9 h-9 md:w-10 md:h-10 text-emerald-400 mb-5 md:mb-6" />
-                        <h3 className="text-xl md:text-2xl font-semibold mb-3">Automatic Segregation</h3>
-                        <p className="text-gray-400 leading-relaxed text-[15px] md:text-base">
-                            Smart sensors automatically separate wet and dry waste, making recycling effortless and efficient.
-                        </p>
+            <div id="key-features" className="mb-24 md:mb-36">
+                <p className="mb-3 text-center text-[11px] font-medium uppercase tracking-[0.28em] text-emerald-400">
+                    Capabilities
+                </p>
+                <h2 className="mb-10 text-center font-display text-3xl font-semibold tracking-tight md:mb-14 md:text-5xl">
+                    Key Features
+                </h2>
+                <div className="mx-auto grid max-w-7xl grid-cols-1 gap-5 md:grid-cols-3 md:gap-8">
+                    <FeatureCard
+                        index="01"
+                        delay={0}
+                        icon={<Split className="h-5 w-5 md:h-6 md:w-6" />}
+                        title="Automatic Segregation"
+                        body="Smart sensors automatically separate wet and dry waste, making recycling effortless and efficient."
+                    />
+                    <FeatureCard
+                        index="02"
+                        delay={0.08}
+                        icon={<Monitor className="h-5 w-5 md:h-6 md:w-6" />}
+                        title="55&quot; Digital Canvas"
+                        body="A massive high-definition screen delivers impactful brand messages with high public visibility."
+                    />
+                    <FeatureCard
+                        index="03"
+                        delay={0.16}
+                        icon={<Leaf className="h-5 w-5 md:h-6 md:w-6" />}
+                        title="Eco-Friendly Impact"
+                        body="Promoting sustainability while creating a smart city infrastructure that benefits everyone."
+                    />
+                </div>
+            </div>
+
+            <div id="plans" className="mb-24 md:mb-36">
+                <div className="mb-10 text-center md:mb-16">
+                    <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.28em] text-emerald-400">
+                        For brands
+                    </p>
+                    <h2 className="mb-3 font-display text-3xl font-semibold tracking-tight md:text-5xl">Advertising Plans</h2>
+                    <p className="text-base text-gray-400 md:text-xl">High impact visibility for your brand.</p>
+                </div>
+
+                <div className="mx-auto grid max-w-7xl grid-cols-1 gap-5 md:grid-cols-3 md:gap-8 md:items-stretch">
+                    <div className="relative overflow-hidden rounded-3xl border border-emerald-400/40 bg-emerald-950/25 p-6 shadow-[0_0_50px_rgba(52,211,153,0.12)] md:scale-[1.03] md:p-10">
+                        <div className="absolute top-0 right-0 rounded-bl-lg bg-emerald-400 px-3 py-1 text-[10px] font-bold tracking-[0.18em] text-black">
+                            POPULAR
+                        </div>
+                        <h3 className="mb-2 pr-16 font-display text-xl font-semibold md:text-2xl">Starter Plan</h3>
+                        <div className="mb-6 flex flex-wrap items-baseline gap-x-2">
+                            <span className="font-display text-3xl font-semibold tracking-tight md:text-5xl">₹500</span>
+                            <span className="text-sm text-gray-400 md:text-base">/ dustbin / month</span>
+                        </div>
+                        <ul className="mb-8 space-y-3 text-[15px] text-gray-300 md:space-y-4 md:text-base">
+                            <li className="flex items-start"><Check className="mt-0.5 mr-3 h-5 w-5 shrink-0 text-emerald-400" /> 12-second advertisement</li>
+                            <li className="flex items-start"><Check className="mt-0.5 mr-3 h-5 w-5 shrink-0 text-emerald-400" /> Loop throughout the day</li>
+                            <li className="flex items-start"><Check className="mt-0.5 mr-3 h-5 w-5 shrink-0 text-emerald-400" /> ~360 plays per day</li>
+                            <li className="flex items-start"><Check className="mt-0.5 mr-3 h-5 w-5 shrink-0 text-emerald-400" /> Ultra-HD Display</li>
+                        </ul>
+                        <button
+                            onClick={() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" })}
+                            className="btn-premium min-h-12 w-full rounded-xl border border-emerald-400 py-3 font-semibold text-emerald-400 transition-colors"
+                        >
+                            <span>Select Plan</span>
+                        </button>
                     </div>
-                    <div className="p-6 md:p-8 border border-white/10 rounded-2xl bg-white/5 backdrop-blur-sm hover:bg-white/10 transition-colors">
-                        <Monitor className="w-9 h-9 md:w-10 md:h-10 text-emerald-400 mb-5 md:mb-6" />
-                        <h3 className="text-xl md:text-2xl font-semibold mb-3">55&quot; Digital Canvas</h3>
-                        <p className="text-gray-400 leading-relaxed text-[15px] md:text-base">
-                            A massive high-definition screen delivers impactful brand messages with high public visibility.
-                        </p>
+
+                    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 transition-colors hover:border-emerald-400/30 md:p-10">
+                        <h3 className="mb-2 font-display text-xl font-semibold md:text-2xl">Growth Plan</h3>
+                        <div className="mb-6">
+                            <span className="font-display text-3xl font-semibold tracking-tight md:text-5xl">Custom</span>
+                        </div>
+                        <ul className="mb-8 space-y-3 text-[15px] text-gray-300 md:space-y-4 md:text-base">
+                            <li className="flex items-start"><Check className="mt-0.5 mr-3 h-5 w-5 shrink-0 text-emerald-400" /> Multiple Locations</li>
+                            <li className="flex items-start"><Check className="mt-0.5 mr-3 h-5 w-5 shrink-0 text-emerald-400" /> Higher Brand Reach</li>
+                            <li className="flex items-start"><Check className="mt-0.5 mr-3 h-5 w-5 shrink-0 text-emerald-400" /> Regional Targeting</li>
+                            <li className="flex items-start"><Check className="mt-0.5 mr-3 h-5 w-5 shrink-0 text-emerald-400" /> Analytics Report</li>
+                        </ul>
+                        <button
+                            onClick={() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" })}
+                            className="btn-premium min-h-12 w-full rounded-xl border border-white/20 py-3 font-semibold text-white transition-colors"
+                        >
+                            <span>Contact Sales</span>
+                        </button>
                     </div>
-                    <div className="p-6 md:p-8 border border-white/10 rounded-2xl bg-white/5 backdrop-blur-sm hover:bg-white/10 transition-colors">
-                        <Leaf className="w-9 h-9 md:w-10 md:h-10 text-emerald-400 mb-5 md:mb-6" />
-                        <h3 className="text-xl md:text-2xl font-semibold mb-3">Eco-Friendly Impact</h3>
-                        <p className="text-gray-400 leading-relaxed text-[15px] md:text-base">
-                            Promoting sustainability while creating a smart city infrastructure that benefits everyone.
-                        </p>
+
+                    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 transition-colors hover:border-emerald-400/30 md:p-10">
+                        <h3 className="mb-2 font-display text-xl font-semibold md:text-2xl">Enterprise</h3>
+                        <div className="mb-6">
+                            <span className="font-display text-3xl font-semibold tracking-tight md:text-5xl">Exclusive</span>
+                        </div>
+                        <ul className="mb-8 space-y-3 text-[15px] text-gray-300 md:space-y-4 md:text-base">
+                            <li className="flex items-start"><Check className="mt-0.5 mr-3 h-5 w-5 shrink-0 text-emerald-400" /> Custom Placements</li>
+                            <li className="flex items-start"><Check className="mt-0.5 mr-3 h-5 w-5 shrink-0 text-emerald-400" /> Full Branding Wrap</li>
+                            <li className="flex items-start"><Check className="mt-0.5 mr-3 h-5 w-5 shrink-0 text-emerald-400" /> Priority Sequencing</li>
+                            <li className="flex items-start"><Check className="mt-0.5 mr-3 h-5 w-5 shrink-0 text-emerald-400" /> Dedicated Support</li>
+                        </ul>
+                        <button
+                            onClick={() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" })}
+                            className="btn-premium min-h-12 w-full rounded-xl border border-white/20 py-3 font-semibold text-white transition-colors"
+                        >
+                            <span>Partner With Us</span>
+                        </button>
                     </div>
                 </div>
             </div>
 
-            {/* ADVERTISING PLANS */}
-            <div className="mb-20 md:mb-32">
-                <div className="text-center mb-10 md:mb-16">
-                    <h2 className="text-3xl md:text-5xl font-bold mb-3 md:mb-4">Advertising Plans</h2>
-                    <p className="text-base md:text-xl text-gray-400">High impact visibility for your brand.</p>
-                </div>
-
-                <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8">
-                    {/* Starter Plan */}
-                    <div className="p-6 md:p-10 border border-emerald-500/30 rounded-3xl bg-emerald-950/20 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 bg-emerald-500 text-black text-xs font-bold px-3 py-1 rounded-bl-lg">POPULAR</div>
-                        <h3 className="text-xl md:text-2xl font-bold mb-2 pr-16">Starter Plan</h3>
-                        <div className="flex flex-wrap items-baseline gap-x-2 mb-6">
-                            <span className="text-3xl md:text-4xl font-bold">₹500</span>
-                            <span className="text-sm md:text-base text-gray-400">/ dustbin / month</span>
-                        </div>
-                        <ul className="space-y-3 md:space-y-4 mb-8 text-[15px] md:text-base text-gray-300">
-                            <li className="flex items-start"><Check className="w-5 h-5 text-emerald-400 mr-3 mt-0.5 shrink-0" /> 12-second advertisement</li>
-                            <li className="flex items-start"><Check className="w-5 h-5 text-emerald-400 mr-3 mt-0.5 shrink-0" /> Loop throughout the day</li>
-                            <li className="flex items-start"><Check className="w-5 h-5 text-emerald-400 mr-3 mt-0.5 shrink-0" /> ~360 plays per day</li>
-                            <li className="flex items-start"><Check className="w-5 h-5 text-emerald-400 mr-3 mt-0.5 shrink-0" /> Ultra-HD Display</li>
-                        </ul>
-                        <button onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })} className="w-full min-h-12 py-3 border border-emerald-500 text-emerald-400 hover:bg-emerald-500 hover:text-black font-semibold rounded-xl transition-all">
-                            Select Plan
-                        </button>
-                    </div>
-
-                    {/* Growth Plan */}
-                    <div className="p-6 md:p-10 border border-white/10 rounded-3xl bg-white/5 group hover:border-emerald-500/50 transition-colors">
-                        <h3 className="text-xl md:text-2xl font-bold mb-2 text-white">Growth Plan</h3>
-                        <div className="flex items-baseline mb-6">
-                            <span className="text-3xl md:text-4xl font-bold">Custom</span>
-                        </div>
-                        <ul className="space-y-3 md:space-y-4 mb-8 text-[15px] md:text-base text-gray-300">
-                            <li className="flex items-start"><Check className="w-5 h-5 text-emerald-400 mr-3 mt-0.5 shrink-0" /> Multiple Locations</li>
-                            <li className="flex items-start"><Check className="w-5 h-5 text-emerald-400 mr-3 mt-0.5 shrink-0" /> Higher Brand Reach</li>
-                            <li className="flex items-start"><Check className="w-5 h-5 text-emerald-400 mr-3 mt-0.5 shrink-0" /> Regional Targeting</li>
-                            <li className="flex items-start"><Check className="w-5 h-5 text-emerald-400 mr-3 mt-0.5 shrink-0" /> Analytics Report</li>
-                        </ul>
-                        <button onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })} className="w-full min-h-12 py-3 border border-white/20 hover:border-white text-white hover:bg-white hover:text-black font-semibold rounded-xl transition-all">
-                            Contact Sales
-                        </button>
-                    </div>
-
-                    {/* Enterprise Plan */}
-                    <div className="p-6 md:p-10 border border-white/10 rounded-3xl bg-white/5 group hover:border-emerald-500/50 transition-colors">
-                        <h3 className="text-xl md:text-2xl font-bold mb-2 text-white">Enterprise</h3>
-                        <div className="flex items-baseline mb-6">
-                            <span className="text-3xl md:text-4xl font-bold">Exclusive</span>
-                        </div>
-                        <ul className="space-y-3 md:space-y-4 mb-8 text-[15px] md:text-base text-gray-300">
-                            <li className="flex items-start"><Check className="w-5 h-5 text-emerald-400 mr-3 mt-0.5 shrink-0" /> Custom Placements</li>
-                            <li className="flex items-start"><Check className="w-5 h-5 text-emerald-400 mr-3 mt-0.5 shrink-0" /> Full Branding Wrap</li>
-                            <li className="flex items-start"><Check className="w-5 h-5 text-emerald-400 mr-3 mt-0.5 shrink-0" /> Priority Sequencing</li>
-                            <li className="flex items-start"><Check className="w-5 h-5 text-emerald-400 mr-3 mt-0.5 shrink-0" /> Dedicated Support</li>
-                        </ul>
-                        <button onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })} className="w-full min-h-12 py-3 border border-white/20 hover:border-white text-white hover:bg-white hover:text-black font-semibold rounded-xl transition-all">
-                            Partner With Us
-                        </button>
-                    </div>
+            <div className="mx-auto mb-24 max-w-5xl text-center md:mb-36">
+                <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.28em] text-emerald-400">
+                    Proof
+                </p>
+                <h2 className="mb-8 font-display text-3xl font-semibold tracking-tight md:mb-12 md:text-4xl">
+                    Why Advertise With Us?
+                </h2>
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-6">
+                    <CountUp value={360} suffix="+" label="Daily plays" />
+                    <CountUp value={100} suffix="%" label="Public visibility" />
+                    <CountUp value={55} suffix='"' label="Digital canvas" />
+                    <CountUp value={24} suffix="/7" label="Smart infrastructure" />
                 </div>
             </div>
 
-            {/* WHY ADVERTISE */}
-            <div className="mb-20 md:mb-32 max-w-5xl mx-auto text-center">
-                <h2 className="text-3xl md:text-4xl font-bold mb-8 md:mb-12">Why Advertise With Us?</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-8">
-                    <div className="p-4 md:p-6 bg-white/5 rounded-2xl">
-                        <div className="text-2xl md:text-4xl font-bold text-emerald-400 mb-2">High</div>
-                        <div className="text-xs md:text-sm text-gray-400">Daily Impressions</div>
-                    </div>
-                    <div className="p-4 md:p-6 bg-white/5 rounded-2xl">
-                        <div className="text-2xl md:text-4xl font-bold text-emerald-400 mb-2">100%</div>
-                        <div className="text-xs md:text-sm text-gray-400">Public Visibility</div>
-                    </div>
-                    <div className="p-4 md:p-6 bg-white/5 rounded-2xl">
-                        <div className="text-2xl md:text-4xl font-bold text-emerald-400 mb-2">Eco</div>
-                        <div className="text-xs md:text-sm text-gray-400">Friendly Branding</div>
-                    </div>
-                    <div className="p-4 md:p-6 bg-white/5 rounded-2xl">
-                        <div className="text-2xl md:text-4xl font-bold text-emerald-400 mb-2">Smart</div>
-                        <div className="text-xs md:text-sm text-gray-400">City Infrastructure</div>
-                    </div>
-                </div>
-            </div>
-
-            {/* ABOUT US */}
-            <div className="mb-20 md:mb-32 bg-gradient-to-r from-emerald-950/30 to-black p-6 sm:p-10 md:p-12 rounded-3xl max-w-5xl mx-auto border border-white/5">
-                <div className="flex flex-col-reverse md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="mx-auto mb-24 max-w-5xl rounded-3xl border border-white/10 bg-gradient-to-r from-emerald-950/40 to-black p-6 sm:p-10 md:mb-36 md:p-14">
+                <div className="flex flex-col-reverse items-start justify-between gap-8 md:flex-row md:items-center">
                     <div className="md:mr-10">
-                        <h2 className="text-2xl md:text-3xl font-bold mb-4">About Gratify Ventures</h2>
-                        <p className="text-gray-400 leading-relaxed text-base md:text-lg">
+                        <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.28em] text-emerald-400">
+                            The company
+                        </p>
+                        <h2 className="mb-4 font-display text-2xl font-semibold tracking-tight md:text-4xl">About Gratify Ventures</h2>
+                        <p className="max-w-2xl text-base leading-relaxed text-gray-400 md:text-lg">
                             Gratify Ventures Private Limited is a smart sustainability startup focused on waste management innovation and digital advertising integration. We are building the future of cleaner, smarter cities.
                         </p>
+                        <button
+                            onClick={() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" })}
+                            className="btn-premium mt-8 min-h-12 rounded-xl border border-emerald-400 px-7 py-3 font-semibold text-emerald-400"
+                        >
+                            <span>Get in touch</span>
+                        </button>
                     </div>
                     <div className="shrink-0">
-                        <div className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                            <Leaf className="w-8 h-8 md:w-10 md:h-10 text-emerald-400" />
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 ring-1 ring-emerald-400/25 md:h-24 md:w-24">
+                            <Leaf className="h-8 w-8 text-emerald-400 md:h-10 md:w-10" />
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* CONTACT FOOTER */}
-            <div id="contact" className="border-t border-white/10 pt-14 md:pt-20 pb-6 md:pb-10">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 max-w-6xl mx-auto">
+            <div id="contact" className="border-t border-white/10 pt-16 md:pt-24">
+                <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 md:grid-cols-2 md:gap-16">
                     <div>
-                        <h2 className="text-4xl md:text-5xl font-bold tracking-tighter mb-6 md:mb-8 bg-gradient-to-b from-white to-gray-600 bg-clip-text text-transparent">
+                        <h2 className="mb-6 bg-gradient-to-b from-white to-gray-500 bg-clip-text font-display text-4xl font-semibold tracking-[-0.05em] text-transparent md:mb-8 md:text-6xl">
                             Let&apos;s Talk.
                         </h2>
-                        <p className="text-lg md:text-xl text-gray-400 mb-6">
+                        <p className="mb-8 text-lg text-gray-400 md:text-xl">
                             Ready to transform your brand visibility?
                         </p>
                         <div className="flex gap-4">
-                            <a href="https://www.instagram.com/gratify_ventures/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="p-3 min-w-12 min-h-12 inline-flex items-center justify-center bg-white/10 rounded-full hover:bg-emerald-500 hover:text-black transition-all">
-                                <Instagram className="w-6 h-6" />
+                            <a href="https://www.instagram.com/gratify_ventures/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-full bg-white/10 p-3 transition-all hover:bg-emerald-400 hover:text-black">
+                                <Instagram className="h-6 w-6" />
                             </a>
-                            <a href="https://www.linkedin.com/company/108105189/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="p-3 min-w-12 min-h-12 inline-flex items-center justify-center bg-white/10 rounded-full hover:bg-emerald-500 hover:text-black transition-all">
-                                <Linkedin className="w-6 h-6" />
+                            <a href="https://www.linkedin.com/company/108105189/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-full bg-white/10 p-3 transition-all hover:bg-emerald-400 hover:text-black">
+                                <Linkedin className="h-6 w-6" />
                             </a>
                         </div>
                     </div>
 
-                    <div className="space-y-6 text-base md:text-lg text-gray-300">
+                    <div className="space-y-6 text-base text-gray-300 md:text-lg">
                         <div className="flex items-start">
-                            <Mail className="w-6 h-6 text-emerald-400 mr-4 mt-0.5 shrink-0" />
-                            <a href="mailto:support@gratifyventures.in" className="hover:text-white break-all">support@gratifyventures.in</a>
+                            <Mail className="mt-0.5 mr-4 h-6 w-6 shrink-0 text-emerald-400" />
+                            <a href="mailto:support@gratifyventures.in" className="break-all hover:text-white">support@gratifyventures.in</a>
                         </div>
                         <div className="flex items-start">
-                            <Phone className="w-6 h-6 text-emerald-400 mr-4 mt-0.5 shrink-0" />
+                            <Phone className="mt-0.5 mr-4 h-6 w-6 shrink-0 text-emerald-400" />
                             <div className="flex flex-col">
-                                <a href="tel:+919317093242" className="hover:text-white py-1">9317093242</a>
-                                <a href="tel:+919012101010" className="hover:text-white py-1">9012101010</a>
+                                <a href="tel:+919317093242" className="py-1 hover:text-white">9317093242</a>
+                                <a href="tel:+919012101010" className="py-1 hover:text-white">9012101010</a>
                             </div>
                         </div>
                         <div className="pt-4 text-sm text-gray-500">
@@ -175,7 +272,6 @@ export default function PostScroll() {
                     </div>
                 </div>
             </div>
-
         </div>
     );
 }
