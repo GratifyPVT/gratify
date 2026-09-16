@@ -128,22 +128,27 @@ export default function ImageSequence({
     const viewportAspect = viewport.width / viewport.height;
     const isPortrait = viewportAspect < 1;
 
-    let scale: [number, number, number] = [viewport.width, viewport.height, 1];
-    let position: [number, number, number] = [0, 0, 0];
+    let width = viewport.width;
+    let height = viewport.height;
+    let x = 0;
 
     if (isPortrait) {
         const zoom = 1.5;
-        const width = viewport.width * zoom;
-        const height = width / textureAspect;
-        const maxDown = Math.max(0, viewport.height / 2 - height / 2 - viewport.height * 0.03);
-        const down = Math.min(viewport.height * 0.12, maxDown);
-        scale = [width, height, 1];
-        position = [-width * 0.05, -down, 0];
+        width = viewport.width * zoom;
+        height = width / textureAspect;
+        x = -width * 0.05;
     } else if (viewportAspect > textureAspect) {
-        scale = [viewport.height * textureAspect, viewport.height, 1];
+        height = viewport.height;
+        width = height * textureAspect;
     } else {
-        scale = [viewport.width, viewport.width / textureAspect, 1];
+        width = viewport.width;
+        height = width / textureAspect;
     }
+
+    // Pin the video's bottom edge to the bottom of the screen.
+    const y = -(viewport.height / 2 - height / 2);
+    const scale: [number, number, number] = [width, height, 1];
+    const position: [number, number, number] = [x, y, 0];
 
     useFrame((_, delta) => {
         const target = sequenceProgress.get();
