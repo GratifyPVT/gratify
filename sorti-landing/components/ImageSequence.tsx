@@ -4,35 +4,34 @@ import { useTexture } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, type RefObject } from "react";
 import * as THREE from "three";
-import { useMotionValue, useSpring } from "framer-motion";
+import { useMotionValue } from "framer-motion";
 
 const FRAME_COUNT = 192;
 const MOBILE_BREAKPOINT = 768;
-const MOBILE_MAX_TEXTURE = 1024;
+const LOAD_CONCURRENCY = 10;
 
-function downscaleTexture(tex: THREE.Texture, maxSize: number) {
-    const image = tex.image as HTMLImageElement | HTMLCanvasElement | ImageBitmap | undefined;
-    if (!image || !("width" in image) || image.width <= maxSize) return tex;
-
-    const scale = maxSize / image.width;
-    const canvas = document.createElement("canvas");
-    canvas.width = maxSize;
-    canvas.height = Math.max(1, Math.round(image.height * scale));
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return tex;
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-    tex.image = canvas;
-    tex.needsUpdate = true;
-    return tex;
-}
-
-function prepareTexture(tex: THREE.Texture, maxSize?: number) {
+function prepareTexture(tex: THREE.Texture) {
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.generateMipmaps = false;
     tex.minFilter = THREE.LinearFilter;
     tex.magFilter = THREE.LinearFilter;
-    if (maxSize) downscaleTexture(tex, maxSize);
+    tex.needsUpdate = true;
     return tex;
+}
+
+function nearestFrame(
+    frames: (THREE.Texture | null)[],
+    index: number,
+    fallback: THREE.Texture
+) {
+    if (frames[index]) return frames[index];
+    for (let d = 1; d < FRAME_COUNT; d++) {
+        const lo = index - d;
+        const hi = index + d;
+        if (lo >= 0 && frames[lo]) return frames[lo];
+        if (hi < FRAME_COUNT && frames[hi]) return frames[hi];
+    }
+    return fallback;
 }
 
 export default function ImageSequence({
@@ -41,11 +40,7 @@ export default function ImageSequence({
     scrollTarget: RefObject<HTMLElement | null>;
 }) {
     const sequenceProgress = useMotionValue(0);
-    const smoothProgress = useSpring(sequenceProgress, {
-        damping: 20,
-        stiffness: 100,
-        restDelta: 0.001,
-    });
+    const displayedProgress = useRef(0);
 
     useEffect(() => {
         const update = () => {
@@ -56,8 +51,6 @@ export default function ImageSequence({
             const sequenceTop = el.getBoundingClientRect().top + window.scrollY;
             const mobile = window.innerWidth < MOBILE_BREAKPOINT;
 
-            // Finish the clip as Key Features enters the viewport.
-            // On mobile, complete slightly before so the last frame is already held.
             let endY: number;
             if (key) {
                 const keyTop = key.getBoundingClientRect().top + window.scrollY;
@@ -97,39 +90,32 @@ export default function ImageSequence({
     }
 
     useEffect(() => {
-        prepareTexture(firstTexture, window.innerWidth < MOBILE_BREAKPOINT ? MOBILE_MAX_TEXTURE : undefined);
+        prepareTexture(firstTexture);
     }, [firstTexture]);
 
     useEffect(() => {
         const loader = new THREE.TextureLoader();
         let cancel = false;
-        const isMobile = window.innerWidth < MOBILE_BREAKPOINT;
-        const step = isMobile ? 2 : 1;
-        const maxSize = isMobile ? MOBILE_MAX_TEXTURE : undefined;
+        let nextIndex = 1;
 
-        const loadTextures = async () => {
-            for (let i = 1; i < FRAME_COUNT; i += step * 4) {
-                if (cancel) return;
-
-                const chunkPromises = [];
-                for (let j = 0; j < 4 && i + j * step < FRAME_COUNT; j++) {
-                    const index = i + j * step;
-                    chunkPromises.push(
-                        loader
-                            .loadAsync(urls[index])
-                            .then((tex) => {
-                                textureRefs.current[index] = prepareTexture(tex, maxSize);
-                            })
-                            .catch((e) => console.error(e))
-                    );
+        const loadNext = async () => {
+            while (!cancel) {
+                const index = nextIndex++;
+                if (index >= FRAME_COUNT) return;
+                try {
+                    const tex = await loader.loadAsync(urls[index]);
+                    if (cancel) {
+                        tex.dispose();
+                        return;
+                    }
+                    textureRefs.current[index] = prepareTexture(tex);
+                } catch (e) {
+                    console.error(e);
                 }
-
-                await Promise.all(chunkPromises);
-                await new Promise((r) => setTimeout(r, isMobile ? 24 : 10));
             }
         };
 
-        loadTextures();
+        void Promise.all(Array.from({ length: LOAD_CONCURRENCY }, () => loadNext()));
 
         return () => {
             cancel = true;
@@ -159,25 +145,17 @@ export default function ImageSequence({
         scale = [viewport.width, viewport.width / textureAspect, 1];
     }
 
-    useFrame(() => {
-        const rawProgress = smoothProgress.get();
-        const frameIndex = Math.floor(rawProgress * (FRAME_COUNT - 1));
+    useFrame((_, delta) => {
+        const target = sequenceProgress.get();
+        const smoothing = 1 - Math.exp(-18 * delta);
+        displayedProgress.current += (target - displayedProgress.current) * smoothing;
+
+        const frameIndex = Math.round(displayedProgress.current * (FRAME_COUNT - 1));
         const clampedIndex = Math.max(0, Math.min(FRAME_COUNT - 1, frameIndex));
 
         if (meshRef.current) {
             const material = meshRef.current.material as THREE.MeshBasicMaterial;
-
-            let tex = textureRefs.current[clampedIndex];
-
-            if (!tex) {
-                for (let i = clampedIndex - 1; i >= 0; i--) {
-                    if (textureRefs.current[i]) {
-                        tex = textureRefs.current[i];
-                        break;
-                    }
-                }
-            }
-            if (!tex) tex = firstTexture;
+            const tex = nearestFrame(textureRefs.current, clampedIndex, firstTexture);
 
             if (material.map !== tex) {
                 material.map = tex;
@@ -189,7 +167,7 @@ export default function ImageSequence({
     return (
         <mesh ref={meshRef} scale={scale} position={position}>
             <planeGeometry args={[1, 1]} />
-            <meshBasicMaterial map={firstTexture} transparent={true} />
+            <meshBasicMaterial map={firstTexture} toneMapped={false} />
         </mesh>
     );
 }

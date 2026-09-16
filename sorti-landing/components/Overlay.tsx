@@ -36,6 +36,9 @@ function BeatCopy({
 const pad =
     "px-5 sm:px-8 md:p-10 pt-[max(4.25rem,calc(env(safe-area-inset-top)+2.75rem))] pb-[max(1.5rem,env(safe-area-inset-bottom))]";
 
+const copyPanel =
+    "relative z-10 rounded-2xl px-4 py-4 sm:px-6 sm:py-5 bg-black/10 backdrop-blur-[1px]";
+
 export default function Overlay({
     sequenceRef,
 }: {
@@ -58,8 +61,8 @@ export default function Overlay({
                         end={0.25}
                         className={`flex-col items-start justify-start ${pad}`}
                     >
-                        <div className="relative z-10 max-w-[min(100%,22rem)] md:max-w-none">
-                            <h1 className="text-[2.75rem] leading-[0.9] sm:text-6xl md:text-9xl font-bold tracking-tighter mix-blend-difference">
+                        <div className={`${copyPanel} max-w-[min(100%,22rem)] md:max-w-lg`}>
+                            <h1 className="text-[2.75rem] leading-[0.9] sm:text-6xl md:text-9xl font-bold tracking-tighter">
                                 Sorti.
                             </h1>
                             <p className="mt-4 text-base sm:text-lg md:text-xl font-light text-gray-300 max-w-xs md:max-w-md">
@@ -75,7 +78,7 @@ export default function Overlay({
                         end={0.5}
                         className={`flex-col items-start justify-start md:items-end md:justify-end text-left md:text-right ${pad}`}
                     >
-                        <div className="relative z-10 max-w-[min(100%,22rem)] md:max-w-none">
+                        <div className={`${copyPanel} max-w-[min(100%,22rem)] md:max-w-lg`}>
                             <h2 className="text-[1.85rem] leading-[1.05] sm:text-5xl md:text-7xl font-bold tracking-tight mb-3 md:mb-4">
                                 AUTOMATIC<br />SEGREGATION
                             </h2>
@@ -91,7 +94,7 @@ export default function Overlay({
                         end={0.75}
                         className={`flex-col items-center justify-start md:justify-center text-center ${pad}`}
                     >
-                        <div className="relative z-10 w-full max-w-xl md:max-w-none px-1">
+                        <div className={`${copyPanel} w-full max-w-xl md:max-w-3xl mx-auto px-4`}>
                             <h2 className="text-[1.85rem] leading-[1.1] sm:text-5xl md:text-7xl font-bold tracking-tight mb-4 md:mb-6 break-words">
                                 55&quot; DIGITAL <span className="text-emerald-400">CANVAS</span>.
                             </h2>
@@ -107,7 +110,7 @@ export default function Overlay({
                         end={1}
                         className={`flex-col items-start justify-start md:justify-center ${pad}`}
                     >
-                        <div className="relative z-10 max-w-[min(100%,22rem)] md:max-w-none">
+                        <div className={`${copyPanel} max-w-[min(100%,22rem)] md:max-w-lg`}>
                             <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tighter">
                                 GRATIFY <br />VENTURES.
                             </h2>
